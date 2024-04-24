@@ -3,3 +3,7 @@ out
 dist
 docs
 db/
+.env
+*.csv
+**/*Zone.Identifier
+*.qfx

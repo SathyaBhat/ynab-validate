@@ -1,30 +1,74 @@
-import { Command } from "commander";
-import { parseAmexStatement } from "./parse";
-import { YNAB } from "./ynab";
-import { DB } from "./db";
+import dotenv from "dotenv";
+import fs from 'fs';
+import {readCreditCardStatement} from "./parse";
+import {YNAB} from "./ynab";
+dotenv.config();
 
-async function main() {
-  const program = new Command();
-  program
-    .description("Validates transactions from statements are in YNAB")
-    .option("-l, --last-date <value> Last date to go back to and fetch")
-    .option("-s, --statement-date <value> Last date to go back to in the statement")
-    .parse(process.argv);
+import {TransactionDetail} from "ynab";
 
-  const options = program.opts();
-  const ynab = new YNAB();
-  const db = new DB();
+function picoDollarsToDollars(amount: number) {
+  return amount / 1000;
+}
+function compareExpenses(creditCardExpenses: ExpenseEntry[], ynabExpenses: TransactionDetail[]) {
+  let ynabMissingExpenses = [];
+  let ynabDuplicateExpenses = [];
+  let amexMissingExpenses = [];
 
-  const ynabAccounts = await ynab.getYnabAccounts();
-  console.log("Found following accounts:");
-  for (const account of ynabAccounts!) {
-    console.log(`\t ${account.name}`);
+  for (const expense of creditCardExpenses) {
+    const missingEntries = ynabExpenses.filter((y) => ((-1 * picoDollarsToDollars(y.amount)) === expense.amount));
+    const duplicateEntries = ynabExpenses.filter((y) => (((-1 * picoDollarsToDollars(y.amount)) === expense.amount) && (y.date === expense.date)));
+    if (missingEntries.length === 0) {
+      ynabMissingExpenses.push({...expense});
+    } else if (duplicateEntries.length > 1) {
+      ynabDuplicateExpenses.push({...expense});
+    }
   }
-  const ynabTransactions = await ynab.getYnabTransactions();
-  for (const transaction of ynabTransactions!.data!.transactions) {
-    // console.log(` ${transaction.id} ${transaction.amount} for ${transaction.payee_name} (${transaction.memo})`);
-    db.saveTransaction(transaction);
+
+  for (const expense of ynabExpenses) {
+    const missingEntries = creditCardExpenses.filter((y) => (y.amount === (-1 * picoDollarsToDollars(expense.amount)) && expense.cleared !== "uncleared"));
+    if (missingEntries.length === 0) {
+      amexMissingExpenses.push({...expense});
+    }
+  }
+
+
+  if (ynabMissingExpenses.length > 0) {
+    console.log('Transactions in Amex Statement but not in YNAB:');
+    ynabMissingExpenses.map(t => {
+      console.log(`\t${t.date} ${picoDollarsToDollars(t.amount)} (${t.description})`);
+    });
+  }
+
+  if (amexMissingExpenses.length > 0) {
+    console.log('Transactions in YNAB but not in Amex (possibly wrong entries or amex statement not up to date)');
+    amexMissingExpenses.map(t => {
+      console.log(`\t${t.date} ${picoDollarsToDollars(t.amount)} (${t.memo})`);
+    });
+  }
+
+  if (ynabDuplicateExpenses.length > 0) {
+    console.log('Possible duplicate transactions in YNAB:');
+    ynabDuplicateExpenses.map(t => {
+      console.log(`\t${t.date} amount ${t.amount} (${t.description})`);
+    });
   }
 }
 
-main();
+
+async function main() {
+  const expensesOnCard = await readCreditCardStatement('activity.csv');
+  fs.writeFileSync('clean-amex.csv', JSON.stringify(expensesOnCard));
+  const startingDate = expensesOnCard[expensesOnCard.length - 1].date;
+  console.log('Checking for transactions starting from', startingDate);
+
+  const ynab = new YNAB();
+  const ynabExpenses = (await ynab.getYnabTransactions(startingDate)).data.transactions;
+  fs.writeFileSync('clean-ynab.csv', JSON.stringify(ynabExpenses));
+  compareExpenses(expensesOnCard, ynabExpenses);
+
+}
+
+if (require.main === module) {
+  main();
+}
+

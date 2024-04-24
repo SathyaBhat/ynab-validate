@@ -1,25 +1,24 @@
 import * as ynab from "ynab";
-import { Account } from "ynab";
+import {Account} from "ynab";
+import {TransactionDetail, TransactionsResponse} from "ynab";
+
+
 export class YNAB {
   private privateAccessToken = process.env.YNAB_TOKEN!;
   private ausBudgetId = process.env.BUDGET_ID!;
   private amexAccountId = process.env.ACCOUNT_ID!;
-  private i: number = 0;
   public ynabAPI = new ynab.API(this.privateAccessToken);
 
-  private getPayeeName(payeeId: string) {
-    return "";
-  }
-  public async getYnabTransactions() {
+  public async getYnabTransactions(startingDate: string) {
     try {
-      const transactions = await this.ynabAPI.transactions.getTransactionsByAccount(
+      return this.ynabAPI.transactions.getTransactionsByAccount(
         this.ausBudgetId,
         this.amexAccountId,
-        "2022-11-12"
+        startingDate
       );
-      return transactions;
     } catch (error) {
       console.log(error);
+      throw new Error(`Error ${error} while fetching transactions`);
     }
   }
 
