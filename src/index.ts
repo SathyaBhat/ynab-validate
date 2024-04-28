@@ -1,14 +1,20 @@
+import chalk from 'chalk';
 import dotenv from "dotenv";
 import fs from 'fs';
+import {TransactionDetail} from "ynab";
+
 import {readCreditCardStatement} from "./parse";
 import {YNAB} from "./ynab";
 dotenv.config();
 
-import {TransactionDetail} from "ynab";
-
 function picoDollarsToDollars(amount: number) {
   return amount / 1000;
 }
+
+function prettyPrintAmount(amount: number) {
+  return amount > 0 ? chalk.red(amount) : chalk.green(amount);
+}
+
 function compareExpenses(creditCardExpenses: ExpenseEntry[], ynabExpenses: TransactionDetail[]) {
   let ynabMissingExpenses = [];
   let ynabDuplicateExpenses = [];
@@ -33,23 +39,23 @@ function compareExpenses(creditCardExpenses: ExpenseEntry[], ynabExpenses: Trans
 
 
   if (ynabMissingExpenses.length > 0) {
-    console.log('Transactions in Amex Statement but not in YNAB:');
+    console.log(chalk.yellowBright('Transactions in Amex Statement but not in YNAB:'));
     ynabMissingExpenses.map(t => {
-      console.log(`\t${t.date} ${picoDollarsToDollars(t.amount)} (${t.description})`);
+      console.log(`\t${t.date} ${prettyPrintAmount(t.amount)} ${chalk.italic(t.description)}`);
     });
   }
 
   if (amexMissingExpenses.length > 0) {
-    console.log('Transactions in YNAB but not in Amex (possibly wrong entries or amex statement not up to date)');
+    console.log(chalk.yellowBright('Transactions in YNAB but not in Amex (possibly wrong entries or amex statement not up to date)'));
     amexMissingExpenses.map(t => {
-      console.log(`\t${t.date} ${picoDollarsToDollars(t.amount)} (${t.memo})`);
+      console.log(`\t${t.date} ${prettyPrintAmount(-1 * picoDollarsToDollars(t.amount))} ${chalk.italic(t.memo)}`);
     });
   }
 
   if (ynabDuplicateExpenses.length > 0) {
     console.log('Possible duplicate transactions in YNAB:');
     ynabDuplicateExpenses.map(t => {
-      console.log(`\t${t.date} amount ${t.amount} (${t.description})`);
+      console.log(`\t${t.date} amount ${prettyPrintAmount(t.amount)} ${chalk.italic(t.description)}`);
     });
   }
 }
