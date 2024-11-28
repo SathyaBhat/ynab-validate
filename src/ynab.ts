@@ -45,6 +45,7 @@ export class YNAB {
       }
     } catch (error) {
       console.error("Couldn't submit to YNAB", error);
+      throw new Error(`Error ${error} while submitting transaction`);
     }
   }
 }

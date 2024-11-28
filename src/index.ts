@@ -1,9 +1,10 @@
 import chalk from "chalk";
 import dotenv from "dotenv";
 import { TransactionDetail } from "ynab";
-
-import { readCreditCardStatement } from "./parse";
+import { readCreditCardStatement, saveExpensesToDatabase } from "./parse";
 import { YNAB } from "./ynab";
+import { getExpensesFromDatabase, markDuplicateTransaction } from "./database";
+import { promptMarkDuplicate } from "./ui";
 
 dotenv.config();
 const publishToYNAB = process.env.PUBLISH_TO_YNAB === "true";
@@ -16,7 +17,7 @@ function prettyPrintAmount(amount: number) {
   return amount > 0 ? chalk.red(amount) : chalk.green(amount);
 }
 
-function compareExpenses(creditCardExpenses: ExpenseEntry[], ynabExpenses: TransactionDetail[]) {
+async function compareExpenses(creditCardExpenses: ExpenseEntry[], ynabExpenses: TransactionDetail[]) {
   let ynabMissingExpenses = [];
   let ynabDuplicateExpenses = [];
   let amexMissingExpenses = [];
@@ -29,7 +30,12 @@ function compareExpenses(creditCardExpenses: ExpenseEntry[], ynabExpenses: Trans
     if (missingEntries.length === 0) {
       ynabMissingExpenses.push({ ...expense });
     } else if (duplicateEntries.length > 1) {
-      ynabDuplicateExpenses.push({ ...expense });
+      const isDuplicate = await promptMarkDuplicate(expense);
+      if (!isDuplicate) {
+        await markDuplicateTransaction(expense);
+      } else {
+        ynabDuplicateExpenses.push({ ...expense });
+      }
     }
   }
 
@@ -70,15 +76,17 @@ function compareExpenses(creditCardExpenses: ExpenseEntry[], ynabExpenses: Trans
 }
 
 async function main() {
-  const expensesOnCard = await readCreditCardStatement("activity.csv");
-  const startingDate = expensesOnCard[expensesOnCard.length - 1].date;
-  const lastDate = expensesOnCard[0].date;
+  const expensesOnCard = await readCreditCardStatement("activity.xlsx");
+  await saveExpensesToDatabase(expensesOnCard, "expenses.db");
+  const expensesFromDb = await getExpensesFromDatabase("expenses.db");
+  const startingDate = expensesFromDb[expensesFromDb.length - 1].date;
+  const lastDate = expensesFromDb[0].date;
   console.log(`Checking for transactions starting from ${startingDate} to ${lastDate}`);
   const ynab = new YNAB();
 
   const ynabExpenses = (await ynab.getYnabTransactions(startingDate)).data.transactions;
   const filteredYnabExpenses = ynabExpenses.filter((t) => new Date(t.date) <= new Date(lastDate));
-  let ynabMissingExpenses = compareExpenses(expensesOnCard, filteredYnabExpenses);
+  let ynabMissingExpenses = await compareExpenses(expensesFromDb, filteredYnabExpenses);
   if (publishToYNAB && ynabMissingExpenses.length) {
     console.log("Publishing missing transactions to YNAB");
     ynabMissingExpenses.map(async (transaction) => {

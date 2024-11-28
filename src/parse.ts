@@ -1,32 +1,58 @@
-import csv from 'csv-parser';
-import fs from 'fs';
+import xlsx from 'xlsx';
+import sqlite3 from 'sqlite3';
 import moment from 'moment';
 
 export async function readCreditCardStatement(filePath: string): Promise<ExpenseEntry[]> {
   return new Promise((resolve, reject) => {
     const results: ExpenseEntry[] = [];
-    fs.createReadStream(filePath)
-      .pipe(csv({
-        mapHeaders: ({header, index}) => {
-          switch (header.replace(/ /g, '_').toLowerCase()) {
-            case 'date': return 'date';
-            case 'description': return 'description';
-            case 'amount': return 'amount';
-            default: return null;
-          }
-        },
-        mapValues: ({header, value}) => {
-          if (header?.toLowerCase() === 'date') {
-            return moment(value, 'DD/MM/YYYY').format('YYYY-MM-DD');
-          } else if (header?.toLowerCase() === 'amount') {
-            return parseFloat(value);
-          } else {
-            return value;
-          }
-        }
-      }))
-      .on('data', (data) => results.push(data))
-      .on('end', () => resolve(results))
-      .on('error', (error) => reject(error));
+    try {
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+      data.forEach((row: any[], index: number) => {
+        if (index === 0) return; // Skip header row
+        const [date, description, amount] = row;
+        results.push({
+          date: moment(date, 'DD/MM/YYYY').format('YYYY-MM-DD'),
+          description: description,
+          amount: parseFloat(amount),
+        });
+      });
+
+      resolve(results);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+export async function saveExpensesToDatabase(expenses: ExpenseEntry[], dbPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const db = new sqlite3.Database(dbPath);
+
+    db.serialize(() => {
+      db.run(`CREATE TABLE IF NOT EXISTS expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT,
+        description TEXT,
+        amount REAL
+      )`);
+
+      const stmt = db.prepare(`INSERT INTO expenses (date, description, amount) VALUES (?, ?, ?)`);
+      expenses.forEach((expense) => {
+        stmt.run(expense.date, expense.description, expense.amount);
+      });
+      stmt.finalize();
+
+      resolve();
+    });
+
+    db.close((err) => {
+      if (err) {
+        reject(err);
+      }
+    });
   });
 }
