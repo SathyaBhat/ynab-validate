@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 import { TransactionDetail } from "ynab";
 import { readCreditCardStatement, saveExpensesToDatabase } from "./parse";
 import { YNAB } from "./ynab";
-import { getExpensesFromDatabase, markDuplicateTransaction } from "./database";
-import { promptMarkDuplicate } from "./ui";
+import { getExpensesFromDatabase, markDuplicateTransaction, isDuplicateTransaction } from "./database";
+import { promptMarkDuplicate, promptMarkNotDuplicate } from "./ui";
 
 dotenv.config();
 const publishToYNAB = process.env.PUBLISH_TO_YNAB === "true";
@@ -30,9 +30,14 @@ async function compareExpenses(creditCardExpenses: ExpenseEntry[], ynabExpenses:
     if (missingEntries.length === 0) {
       ynabMissingExpenses.push({ ...expense });
     } else if (duplicateEntries.length > 1) {
-      const isDuplicate = await promptMarkDuplicate(expense);
+      const isDuplicate = await isDuplicateTransaction(expense);
       if (!isDuplicate) {
-        await markDuplicateTransaction(expense);
+        const markAsNotDuplicate = await promptMarkNotDuplicate(expense);
+        if (markAsNotDuplicate) {
+          await markDuplicateTransaction(expense);
+        } else {
+          ynabDuplicateExpenses.push({ ...expense });
+        }
       } else {
         ynabDuplicateExpenses.push({ ...expense });
       }

@@ -42,4 +42,21 @@ describe('compareExpenses', () => {
 
     expect(result).to.deep.equal([]);
   });
+
+  it('should allow marking duplicate transactions as not duplicates', async () => {
+    const creditCardExpenses = [
+      { date: '2023-01-01', description: 'Test Transaction 1', amount: 100.0 },
+      { date: '2023-01-01', description: 'Test Transaction 1', amount: 100.0 },
+    ];
+    const ynabExpenses = [
+      { id: '1', date: '2023-01-01', description: 'Test Transaction 1', amount: -100000 },
+    ];
+
+    // Simulate marking the first transaction as not a duplicate
+    await markDuplicateTransaction(creditCardExpenses[0]);
+
+    const result = await compareExpenses(creditCardExpenses, ynabExpenses);
+
+    expect(result).to.deep.equal([]);
+  });
 });
