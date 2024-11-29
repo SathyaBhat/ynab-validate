@@ -13,3 +13,16 @@ export async function promptMarkDuplicate(expense: ExpenseEntry): Promise<boolea
 
   return answers.isDuplicate;
 }
+
+export async function promptMarkNotDuplicate(expense: ExpenseEntry): Promise<boolean> {
+  const answers = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'isNotDuplicate',
+      message: `Mark this transaction as not a duplicate? ${expense.date} ${expense.description} ${expense.amount}`,
+      default: false,
+    },
+  ]);
+
+  return answers.isNotDuplicate;
+}
