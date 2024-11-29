@@ -8,7 +8,7 @@ export class YNAB {
 
   public async getYnabTransactions(startingDate: string) {
     try {
-      return this.ynabAPI.transactions.getTransactionsByAccount(this.ausBudgetId, this.amexAccountId, startingDate);
+      return await this.ynabAPI.transactions.getTransactionsByAccount(this.ausBudgetId, this.amexAccountId, startingDate);
     } catch (error) {
       console.log(error);
       throw new Error(`Error ${error} while fetching transactions`);
