@@ -44,13 +44,17 @@ export async function saveExpensesToDatabase(expenses: ExpenseEntry[], dbPath: s
     stmt.finalize();
   });
 
-  return new Promise((resolve, reject) => {
-    db.close((err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
+  try {
+    await new Promise<void>((resolve, reject) => {
+      db.close((err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
     });
-  });
+  } catch (error) {
+    throw new Error(`Error closing the database: ${error}`);
+  }
 }
