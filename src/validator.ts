@@ -1,3 +1,5 @@
+import type { AmExTransaction } from './types/index';
+
 /**
  * Validate AmEx transaction data
  */

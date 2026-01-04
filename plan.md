@@ -81,66 +81,105 @@
 ## Phase 3: Backend API Setup
 
 ### 3.1 Web Framework & Server
-- [ ] Add Express.js to dependencies
-- [ ] Create `src/server/` directory structure
-  - [ ] `src/server/app.ts` - Express app initialization
-  - [ ] `src/server/middleware/` - CORS, logging, error handling
-  - [ ] `src/server/routes/` - API route handlers
+- [x] Add Express.js to dependencies
+- [x] Create `src/server/` directory structure
+  - [x] `src/server/app.ts` - Express app initialization with middleware
+  - [x] `src/server/index.ts` - Server entry point
+  - [x] `src/server/routes/` - API route handlers (import, transactions, history)
 
 ### 3.2 API Endpoints (REST)
-- [ ] `POST /api/import` - Upload and import XLSX file
-  - [ ] Multipart form data handling
-  - [ ] File validation (XLSX only, file size limits)
-  - [ ] Return import results with status
-- [ ] `GET /api/transactions` - List transactions with pagination
-  - [ ] Query parameters: limit, offset, sort, filter
-  - [ ] Return paginated JSON response
-- [ ] `GET /api/transactions/:id` - Get single transaction
-- [ ] `GET /api/import-history` - View previous imports
-  - [ ] Timestamp, file name, record count, status
-- [ ] `DELETE /api/transactions/:id` - Delete transaction (if needed)
-- [ ] `POST /api/import/validate` - Validate file before importing (optional)
+- [x] `POST /api/import` - Upload and import XLSX file
+  - [x] Multipart form data handling with multer
+  - [x] File validation (XLSX only)
+  - [x] Return import results with full status details
+- [x] `POST /api/import/validate` - Validate file before importing
+  - [x] Returns validation results without database changes
+- [x] `GET /api/transactions` - List transactions with pagination
+  - [x] Query parameters: limit (max 500), offset
+  - [x] Return paginated JSON with total count
+- [x] `GET /api/transactions/:reference` - Get transaction by reference
+- [x] `GET /api/transactions/id/:id` - Get transaction by ID
+- [x] `DELETE /api/transactions/:id` - Delete transaction by ID
+- [x] `GET /api/import-history` - View import history with pagination
+- [x] `GET /health` - Health check endpoint
 
 ### 3.3 Error Handling & Responses
-- [ ] Standardized error response format
-  - [ ] HTTP status codes (400, 409 for duplicates, 500)
-  - [ ] Error messages and codes for debugging
-- [ ] Request/response logging
-- [ ] Input validation middleware
+- [x] Standardized response format (success/error with timestamp)
+- [x] Error response includes: error message, error code, path, timestamp
+- [x] HTTP status codes (200, 207 partial, 400, 404, 500)
+- [x] Request/response logging middleware
+- [x] Multer error handling (file uploads)
+- [x] Global error handler for uncaught exceptions
 
-### 3.4 Authentication (Optional - Phase 2 consideration)
-- [ ] Placeholder for future authentication layer
+### 3.4 Environment Configuration
+- [x] Create `.env.example` with all configuration variables
+- [x] Support for: PORT, NODE_ENV, DATABASE_PATH, CORS_ORIGIN, MAX_FILE_SIZE
+
+### 3.5 Tests
+- [x] Create `spec/server.test.ts` with 25+ integration tests
+  - [x] Health check endpoint
+  - [x] File upload and import
+  - [x] File validation
+  - [x] Transaction listing and pagination
+  - [x] Transaction retrieval
+  - [x] Import history
+  - [x] Transaction deletion
+  - [x] Error handling (404, 400, 500)
+  - [x] Response format consistency
+
+### 3.6 npm Scripts
+- [x] `npm run start` - Run production server
+- [x] `npm run dev` - Run development server with ts-node
 
 ---
 
 ## Phase 4: Frontend Scaffold (Backend-Ready)
 
 ### 4.1 Project Structure
-- [ ] Create `web/` directory for frontend
-- [ ] Prepare for React/Vue/Svelte integration (backend first)
-- [ ] API client library stub
+- [x] Create `web/` directory for frontend
+- [x] Prepare for React/Vue/Svelte integration (backend first)
+- [x] API client library stub
+
+### 4.2 React Frontend (Complete)
+- [x] Create React 18 + TypeScript + Vite project
+- [x] API client with axios (`src/api/client.ts`)
+- [x] Type-safe interfaces (`src/types.ts`)
+- [x] Components:
+  - [x] Header.tsx - Server health check
+  - [x] FileUpload.tsx - XLSX upload with validation
+  - [x] TransactionList.tsx - Paginated transaction table
+  - [x] ImportHistory.tsx - Import operation history
+- [x] Responsive CSS styling
+- [x] Production build
 
 ---
 
 ## Phase 5: Build & Deployment Updates
 
 ### 5.1 Build Configuration
-- [ ] Update `tsconfig.json` if needed (server-side TS)
-- [ ] Update npm scripts in package.json
-  - [ ] `npm run dev` - Run dev server with nodemon
-  - [ ] `npm run build` - Build backend
-  - [ ] `npm run start` - Run compiled server
-  - [ ] Keep `npm test`, `npm run lint`
+- [x] Update `tsconfig.json` if needed (server-side TS)
+- [x] Update npm scripts in package.json
+  - [x] `npm run dev` - Run backend server with ts-node
+  - [x] `npm run dev:all` - Run both backend and frontend with concurrently
+  - [x] `npm run build` - Build backend
+  - [x] `npm run build:all` - Build backend and frontend
+  - [x] `npm run start` - Run compiled server
+  - [x] `npm test`, `npm run lint` available
 
 ### 5.2 Environment Configuration
-- [ ] Update `.env.example` with:
-  - [ ] `DATABASE_PATH` - SQLite database file location
-  - [ ] `PORT` - Server port (default 3000)
-  - [ ] `NODE_ENV` - Development/production
-- [ ] Update `.gitignore` for database files and temp uploads
+- [x] `.env.example` has all required variables:
+  - [x] `DATABASE_PATH` - SQLite database file location
+  - [x] `PORT` - Server port (default 3000)
+  - [x] `NODE_ENV` - Development/production
+- [x] `.gitignore` updated for database files and temp uploads
 
 ### 5.3 Docker & Deployment
-- [ ] Update Dockerfile for backend server
+- [x] Multi-stage Dockerfile for backend (optimized production)
+- [x] Dockerfile for frontend dev mode
+- [x] Dockerfile.prod for frontend with nginx (production)
+- [x] docker-compose.yml for local development
+- [x] docker-compose.prod.yml for production with volumes and health checks
+- [x] nginx.conf for frontend reverse proxy and API routing
 
 ---
 

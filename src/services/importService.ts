@@ -6,6 +6,7 @@ import {
   insertImportLog,
   getDatabase,
 } from '../db';
+import type { AmExTransaction, ImportResult, ImportError, ImportLog } from '../types/index';
 import * as fs from 'fs';
 
 interface ImportServiceOptions {

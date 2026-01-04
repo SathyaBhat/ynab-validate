@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_PATH: /app/db/transactions.db
+    volumes:
+      - ./src:/app/src
+      - ./db:/app/db
+      - ./uploads:/app/uploads
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000
+    volumes:
+      - ./web/src:/app/src
+      - ./web/public:/app/public
+    command: npm run dev
+    depends_on:
+      - backend

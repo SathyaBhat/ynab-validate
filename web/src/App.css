@@ -1,0 +1,116 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f3f4f6;
+}
+
+.container {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.notification {
+  fixed: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background-color: #dcfce7;
+  color: #166534;
+  border-bottom: 2px solid #86efac;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  z-index: 1000;
+  animation: slideDown 0.3s ease-out;
+}
+
+.notification.partial {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-bottom-color: #fcd34d;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-content strong {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.notification-content p {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.notification-close:hover {
+  opacity: 1;
+}
+
+.tabs {
+  display: grid;
+  gap: 2rem;
+}
+
+.tab-content {
+  width: 100%;
+}
+
+.tab-content h2 {
+  margin-top: 0;
+  color: #1f2937;
+}
+
+.footer {
+  background-color: #1f2937;
+  color: #d1d5db;
+  text-align: center;
+  padding: 2rem 1rem;
+  margin-top: auto;
+  font-size: 0.9rem;
+}
+
+.footer p {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .notification {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notification-close {
+    align-self: flex-end;
+  }
+}

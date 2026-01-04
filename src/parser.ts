@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import * as fs from 'fs';
+import type { AmExTransaction } from './types/index';
 
 interface ParserOptions {
   worksheetName?: string;

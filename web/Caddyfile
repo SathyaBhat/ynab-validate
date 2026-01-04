@@ -1,0 +1,31 @@
+:80 {
+	encode gzip
+	
+	# Redirect /amex-sync to /amex-sync/
+	@notslash path /amex-sync
+	redir @notslash /amex-sync/ 301
+	
+	# Proxy API calls to backend
+	handle /amex-sync/api* {
+		uri strip_prefix /amex-sync
+		reverse_proxy amex-importer-backend:3000
+	}
+	
+	# Health check endpoint
+	handle /amex-sync/health {
+		uri strip_prefix /amex-sync
+		reverse_proxy amex-importer-backend:3000
+	}
+	
+	# Cache static assets
+	@assets path /amex-sync/assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	
+	# Handle static files and SPA
+	handle /amex-sync/* {
+		root * /app/dist
+		uri strip_prefix /amex-sync
+		try_files {path} /index.html
+		file_server
+	}
+}

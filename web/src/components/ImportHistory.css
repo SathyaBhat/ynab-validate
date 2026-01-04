@@ -1,0 +1,143 @@
+.import-history {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.import-history h2 {
+  margin-top: 0;
+  color: #1f2937;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.history-item {
+  padding: 1.5rem;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  border-left: 4px solid #667eea;
+}
+
+.history-item .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.history-item h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.1rem;
+}
+
+.timestamp {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.history-item .stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.history-item .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.history-item .stat .label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.history-item .stat .value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.history-item .stat .value.success {
+  color: #059669;
+}
+
+.history-item .stat .value.error {
+  color: #dc2626;
+}
+
+.history-item .errors {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 4px;
+  border-left: 3px solid #fbbf24;
+}
+
+.history-item .errors h4 {
+  margin: 0 0 0.5rem 0;
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+.history-item .errors ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.history-item .errors li {
+  padding: 0.5rem 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.history-item .errors li:last-child {
+  border-bottom: none;
+}
+
+.history-item .errors code {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.error {
+  padding: 1rem;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .import-history {
+    padding: 1rem;
+  }
+
+  .history-item .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .history-item .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

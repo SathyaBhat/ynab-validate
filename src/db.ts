@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { AmExTransaction, AmExTransactionRow, ImportLog } from './types/index';
 
 let db: Database.Database | null = null;
 
@@ -154,12 +155,41 @@ export function transactionExists(reference: string): boolean {
 }
 
 /**
+ * Transform database row to AmExTransactionRow (ensure all snake_case fields)
+ */
+function transformTransactionRow(row: any): AmExTransactionRow {
+  return {
+    id: row.id,
+    date: row.date,
+    date_processed: row.date_processed,
+    description: row.description,
+    card_member: row.card_member,
+    account_number: row.account_number,
+    amount: row.amount,
+    foreign_spend_amount: row.foreign_spend_amount,
+    commission: row.commission,
+    exchange_rate: row.exchange_rate,
+    additional_information: row.additional_information,
+    appears_on_statement: row.appears_on_statement,
+    address: row.address,
+    town_city: row.town_city,
+    postcode: row.postcode,
+    country: row.country,
+    reference: row.reference,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+/**
  * Get transaction by reference
  */
 export function getTransactionByReference(reference: string): AmExTransactionRow | null {
   const database = getDatabase();
   const stmt = database.prepare('SELECT * FROM transactions WHERE reference = ?');
-  return (stmt.get(reference) as AmExTransactionRow) || null;
+  const row = stmt.get(reference) as any;
+  if (!row) return null;
+  return transformTransactionRow(row);
 }
 
 /**
@@ -172,7 +202,8 @@ export function getTransactions(limit: number = 50, offset: number = 0): AmExTra
     ORDER BY date DESC
     LIMIT ? OFFSET ?
   `);
-  return stmt.all(limit, offset) as AmExTransactionRow[];
+  const rows = stmt.all(limit, offset) as any[];
+  return rows.map(transformTransactionRow);
 }
 
 /**
@@ -239,9 +270,26 @@ export function getImportLogs(limit: number = 50, offset: number = 0): ImportLog
     ORDER BY import_timestamp DESC
     LIMIT ? OFFSET ?
   `);
-  const logs = stmt.all(limit, offset) as Array<ImportLog & { errors: string | null }>;
+  const logs = stmt.all(limit, offset) as Array<{
+    id: number;
+    file_name: string;
+    file_size: number;
+    total_records: number;
+    imported_records: number;
+    skipped_records: number;
+    error_count: number;
+    errors: string | null;
+    import_timestamp: string;
+  }>;
   return logs.map((log) => ({
-    ...log,
+    id: log.id,
+    fileName: log.file_name,
+    fileSize: log.file_size,
+    totalRecords: log.total_records,
+    importedRecords: log.imported_records,
+    skippedRecords: log.skipped_records,
+    errorCount: log.error_count,
+    importTimestamp: log.import_timestamp,
     errors: log.errors ? JSON.parse(log.errors) : undefined,
   }));
 }
