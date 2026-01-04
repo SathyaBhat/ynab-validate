@@ -1,11 +1,6 @@
 # AmEx Statement Importer
 
-A **production-ready full-stack web application** for importing and managing American Express credit card statements.
-
-[![Tests](https://img.shields.io/badge/tests-50_passing-brightgreen)]()
-[![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![TypeScript](https://img.shields.io/badge/typescript-strict-blue)]()
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+A **production-ready full-stack web application** for importing and managing American Express credit card statements. Ultimately, this will help users sync their American Express credit card statements and reconcile missing transactions with [YNAB](https://www.youneedabudget.com/).
 
 ## Table of Contents
 
