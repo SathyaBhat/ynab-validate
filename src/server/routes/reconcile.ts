@@ -8,6 +8,7 @@ import {
   getReconciliationLogs,
   insertReconciliationLog,
 } from '../../db';
+import { getQueryInt, getQueryString } from '../utils/queryParams';
 
 export function reconcileRoutes(): Router {
   const router = Router();
@@ -19,6 +20,7 @@ export function reconcileRoutes(): Router {
  * Body:
  * {
  *   "budgetId": "YNAB_BUDGET_ID",
+ *   "accountId": "YNAB_ACCOUNT_ID",
  *   "startDate": "2024-01-01",
  *   "endDate": "2024-01-31",
  *   "dateTolerance": 2,           // Optional: days tolerance (default: 2)
@@ -27,14 +29,14 @@ export function reconcileRoutes(): Router {
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { budgetId, startDate, endDate, dateTolerance, amountTolerance } = req.body;
+    const { budgetId, accountId, startDate, endDate, dateTolerance, amountTolerance } = req.body;
     const persist = req.query.persist === 'true';
 
     // Validate required fields
-    if (!budgetId || !startDate || !endDate) {
+    if (!budgetId || !accountId || !startDate || !endDate) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: budgetId, startDate, endDate',
+        error: 'Missing required fields: budgetId, accountId, startDate, endDate',
         code: 'MISSING_FIELDS',
         timestamp: new Date().toISOString(),
       });
@@ -72,6 +74,7 @@ router.post('/', async (req: Request, res: Response) => {
       // Perform reconciliation with optional persistence
       const result = await reconciliationService.reconcileAndPersist(
         budgetId,
+        accountId,
         startDate,
         endDate,
         persist,
@@ -290,7 +293,7 @@ router.post('/create', async (req: Request, res: Response) => {
  */
 router.delete('/match/:cardTransactionId', async (req: Request, res: Response) => {
   try {
-    const cardTransactionId = parseInt(req.params.cardTransactionId, 10);
+    const cardTransactionId = parseInt(getQueryString(req.params.cardTransactionId), 10);
 
     if (isNaN(cardTransactionId)) {
       return res.status(400).json({
@@ -330,9 +333,9 @@ router.delete('/match/:cardTransactionId', async (req: Request, res: Response) =
  */
 router.get('/history', async (req: Request, res: Response) => {
   try {
-    const budgetId = req.query.budgetId as string | undefined;
-    const limit = parseInt(req.query.limit as string, 10) || 50;
-    const offset = parseInt(req.query.offset as string, 10) || 0;
+    const budgetId = getQueryString(req.query.budgetId) || undefined;
+    const limit = getQueryInt(req.query.limit, 50, 1);
+    const offset = getQueryInt(req.query.offset, 0, 0);
 
     const logs = getReconciliationLogs(budgetId, limit, offset);
 
@@ -358,7 +361,7 @@ router.get('/history', async (req: Request, res: Response) => {
  */
 router.get('/accounts/:budgetId', async (req: Request, res: Response) => {
   try {
-    const { budgetId } = req.params;
+    const budgetId = getQueryString(req.params.budgetId);
 
     if (!budgetId) {
       return res.status(400).json({

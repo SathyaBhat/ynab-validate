@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { getImportLogs } from '../../db';
 import type { ErrorResponse, SuccessResponse } from '../app';
 import type { ImportLog } from '../../types/index';
+import { getQueryInt, getQueryString } from '../utils/queryParams';
 
 export function historyRoutes(): Router {
   const router = Router();
@@ -24,8 +25,8 @@ export function historyRoutes(): Router {
       >,
     ) => {
       try {
-        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 500);
-        const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+        const limit = getQueryInt(req.query.limit, 50, 1, 500);
+        const offset = getQueryInt(req.query.offset, 0, 0);
 
         const logs = getImportLogs(limit, offset);
 
@@ -63,7 +64,7 @@ export function historyRoutes(): Router {
       res: Response<SuccessResponse<ImportLog> | ErrorResponse>,
     ) => {
       try {
-        const { id } = req.params;
+        const id = getQueryString(req.params.id);
         const numId = parseInt(id, 10);
 
         if (isNaN(numId) || numId <= 0) {

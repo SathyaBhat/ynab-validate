@@ -186,6 +186,33 @@ npm run docker:up         # Dev containers
 npm run docker:up:prod    # Production containers
 ```
 
+### Docker Image Publishing
+
+The project includes a `Makefile` for building and publishing Docker images with automatic version management.
+
+**Quick release:**
+```bash
+make release              # Build and push both images with auto-increment
+```
+
+**Available commands:**
+```bash
+make help                 # Show all available commands
+make version              # Display current versions
+make build                # Build both images (auto-increment)
+make build-backend        # Build backend only
+make build-web            # Build web only
+make push                 # Push both images to Docker Hub
+make release-backend      # Test + build + push backend
+make release-web          # Build + push web
+```
+
+**Published images:**
+- `sathyabhat/amex-sync-backend:latest` (and versioned tags)
+- `sathyabhat/amex-sync-web:latest` (and versioned tags)
+
+See [DOCKER_RELEASE.md](DOCKER_RELEASE.md) for detailed documentation on version management, CI/CD integration, and publishing workflows.
+
 ### Home Server Deployment
 
 For deployment behind a reverse proxy (Traefik, Caddy, nginx) at a subpath:

@@ -79,6 +79,7 @@ export class YnabClient {
         id: txn.id,
         date: txn.date,
         amount: txn.amount,
+        account_id: txn.account_id,
         payee_name: txn.payee_name,
         category_name: txn.category_name,
         memo: txn.memo,
@@ -91,15 +92,17 @@ export class YnabClient {
   }
 
   /**
-   * Get transactions for a date range
+   * Get transactions for a date range, optionally filtered by account
    * @param budgetId - YNAB budget ID
    * @param startDate - Start date (ISO 8601)
    * @param endDate - End date (ISO 8601)
+   * @param accountId - Optional: filter to specific account
    */
   async getTransactionsByDateRange(
     budgetId: string,
     startDate: string,
     endDate: string,
+    accountId?: string,
   ): Promise<YnabTransaction[]> {
     try {
       const response = await this.client.get(`/budgets/${budgetId}/transactions`, {
@@ -112,6 +115,7 @@ export class YnabClient {
         id: txn.id,
         date: txn.date,
         amount: txn.amount,
+        account_id: txn.account_id,
         payee_name: txn.payee_name,
         category_name: txn.category_name,
         memo: txn.memo,
@@ -120,7 +124,14 @@ export class YnabClient {
       }));
 
       // Filter by end date since YNAB API doesn't support it directly
-      return allTransactions.filter((txn: YnabTransaction) => txn.date <= endDate);
+      let filtered = allTransactions.filter((txn: YnabTransaction) => txn.date <= endDate);
+
+      // Filter by account if specified
+      if (accountId) {
+        filtered = filtered.filter((txn: YnabTransaction) => txn.account_id === accountId);
+      }
+
+      return filtered;
     } catch (error) {
       throw this.handleError(
         error,
@@ -162,6 +173,7 @@ export class YnabClient {
         id: txn.id,
         date: txn.date,
         amount: txn.amount,
+        account_id: txn.account_id,
         payee_name: txn.payee_name,
         category_name: txn.category_name,
         memo: txn.memo,
@@ -196,6 +208,7 @@ export class YnabClient {
         id: txn.id,
         date: txn.date,
         amount: txn.amount,
+        account_id: txn.account_id,
         payee_name: txn.payee_name,
         category_name: txn.category_name,
         memo: txn.memo,

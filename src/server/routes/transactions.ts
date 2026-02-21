@@ -7,6 +7,7 @@ import {
 } from '../../db';
 import type { ErrorResponse, SuccessResponse } from '../app';
 import type { AmExTransactionRow } from '../../types/index';
+import { getQueryInt, getQueryString } from '../utils/queryParams';
 
 export function transactionRoutes(): Router {
   const router = Router();
@@ -31,8 +32,8 @@ export function transactionRoutes(): Router {
     ) => {
       try {
         // Parse query parameters
-        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 500);
-        const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+        const limit = getQueryInt(req.query.limit, 50, 1, 500);
+        const offset = getQueryInt(req.query.offset, 0, 0);
 
         // Get transactions and count
         const transactions = getTransactions(limit, offset);
@@ -72,7 +73,7 @@ export function transactionRoutes(): Router {
       res: Response<SuccessResponse<AmExTransactionRow> | ErrorResponse>,
     ) => {
       try {
-        const { reference } = req.params;
+        const reference = getQueryString(req.params.reference);
 
         if (!reference || reference.trim() === '') {
           return res.status(400).json({
@@ -121,7 +122,7 @@ export function transactionRoutes(): Router {
       res: Response<SuccessResponse<AmExTransactionRow> | ErrorResponse>,
     ) => {
       try {
-        const { id } = req.params;
+        const id = getQueryString(req.params.id);
         const numId = parseInt(id, 10);
 
         if (isNaN(numId) || numId <= 0) {
@@ -172,7 +173,7 @@ export function transactionRoutes(): Router {
       res: Response<SuccessResponse<{ deleted: boolean; id: number }> | ErrorResponse>,
     ) => {
       try {
-        const { id } = req.params;
+        const id = getQueryString(req.params.id);
         const numId = parseInt(id, 10);
 
         if (isNaN(numId) || numId <= 0) {

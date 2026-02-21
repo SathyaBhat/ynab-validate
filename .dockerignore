@@ -1,0 +1,97 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+web/node_modules
+
+# Build outputs
+dist
+out
+build
+.next
+web/dist
+web/build
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+*.log
+
+# Database files (should be mounted as volume)
+db/
+*.db
+*.db-shm
+*.db-wal
+
+# Uploads (should be mounted as volume)
+uploads/
+*.xlsx
+*.xls
+*.csv
+*.qfx
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+*.md
+!README.md
+docs/
+CLAUDE.md
+HOMESERVER_SETUP.md
+IMPLEMENTATION_SUMMARY.md
+QUICK_START_YNAB.md
+YNAB_INTEGRATION_CHECKLIST.md
+YNAB_RECONCILIATION.md
+RECONCILIATION_IMPLEMENTATION.md
+plan.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+**/*Zone.Identifier
+
+# Testing
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+spec/
+test/
+tests/
+__tests__
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+.circleci
+
+# Docker files (not needed inside container)
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# Build automation (not needed inside container)
+Makefile
+.version-*
+
+# Misc
+.cache
+.temp
+tmp/
+temp/
+*.tmp
+.eslintcache
+activity.xlsx

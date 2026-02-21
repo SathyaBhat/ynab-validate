@@ -61,6 +61,7 @@ export class ReconciliationService {
   /**
    * Reconcile card transactions against YNAB for a date range
    * @param budgetId - YNAB budget ID
+   * @param accountId - YNAB account ID (credit card account)
    * @param startDate - Start date (ISO 8601)
    * @param endDate - End date (ISO 8601)
    * @param limit - Max card transactions to fetch
@@ -68,6 +69,7 @@ export class ReconciliationService {
    */
   async reconcile(
     budgetId: string,
+    accountId: string,
     startDate: string,
     endDate: string,
     limit: number = 500,
@@ -77,11 +79,12 @@ export class ReconciliationService {
       // Fetch card transactions
       const cardTransactions = await this.getCardTransactionsInRange(startDate, endDate, limit, offset);
 
-      // Fetch YNAB transactions
+      // Fetch YNAB transactions for specific account
       const ynabTransactions = await this.ynabClient.getTransactionsByDateRange(
         budgetId,
         startDate,
         endDate,
+        accountId,
       );
 
       // Filter out deleted transactions if configured
@@ -133,12 +136,13 @@ export class ReconciliationService {
    */
   async reconcileAndPersist(
     budgetId: string,
+    accountId: string,
     startDate: string,
     endDate: string,
     persist: boolean = false,
   ): Promise<ReconciliationResultWithActions> {
     // Run standard reconciliation
-    const result = await this.reconcile(budgetId, startDate, endDate);
+    const result = await this.reconcile(budgetId, accountId, startDate, endDate);
 
     // Determine available actions
     const actions = {
@@ -344,8 +348,10 @@ export class ReconciliationService {
     return ynabTransactions
       .filter((ynabTxn) => {
         // Check amount match (convert milliunits to standard units)
+        // YNAB expenses are negative, card transactions are positive
+        // Compare absolute values to match regardless of sign
         const ynabAmount = YnabClient.milliunitsToAmount(ynabTxn.amount);
-        const amountDiff = Math.abs(cardAmount - ynabAmount);
+        const amountDiff = Math.abs(Math.abs(cardAmount) - Math.abs(ynabAmount));
 
         // Check date match (within tolerance)
         const dateDiff = Math.abs(this.dateDifference(cardDate, ynabTxn.date));

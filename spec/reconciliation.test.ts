@@ -242,4 +242,122 @@ describe('Reconciliation Service', () => {
       expect(candidates).to.have.lengthOf(1);
     });
   });
+
+  describe('sign handling (positive card vs negative YNAB)', () => {
+    it('should match positive card amount with negative YNAB amount (typical expense)', () => {
+      const reconcile = reconciliationService as any;
+      // Card shows expenses as positive
+      const cardExpense = { ...mockCardTransaction, amount: 30.00 };
+      // YNAB shows expenses as negative
+      const ynabExpense = { ...mockYnabTransaction, amount: -30000 };
+
+      const candidates = reconcile.findMatchingYnabTransactions(cardExpense, [ynabExpense]);
+      expect(candidates).to.have.lengthOf(1);
+    });
+
+    it('should match Coles transaction example from bug report', () => {
+      const reconcile = reconciliationService as any;
+      const colesCard: AmExTransactionRow = {
+        ...mockCardTransaction,
+        date: '2026-02-01',
+        description: 'COLES STANHOPE GARDENS',
+        amount: 30.00,
+        reference: 'AT260320012000010163948',
+      };
+      const colesYnab: YnabTransaction = {
+        ...mockYnabTransaction,
+        date: '2026-02-01',
+        amount: -30000, // -$30.00 in milliunits
+        payee_name: 'Coles',
+      };
+
+      const candidates = reconcile.findMatchingYnabTransactions(colesCard, [colesYnab]);
+      expect(candidates).to.have.lengthOf(1);
+      expect(candidates[0].dateDifference).to.equal(0);
+    });
+
+    it('should match Bunnings transaction example from bug report', () => {
+      const reconcile = reconciliationService as any;
+      const bunningsCard: AmExTransactionRow = {
+        ...mockCardTransaction,
+        date: '2026-02-01',
+        description: 'BUNNINGS GROUP LTD RIVE',
+        amount: 414.00,
+        reference: 'AT260320003000010160795',
+      };
+      const bunningsYnab: YnabTransaction = {
+        ...mockYnabTransaction,
+        date: '2026-02-01',
+        amount: -414000, // -$414.00 in milliunits
+        payee_name: 'Bunnings',
+      };
+
+      const candidates = reconcile.findMatchingYnabTransactions(bunningsCard, [bunningsYnab]);
+      expect(candidates).to.have.lengthOf(1);
+      expect(candidates[0].dateDifference).to.equal(0);
+    });
+
+    it('should NOT match when amounts differ despite sign', () => {
+      const reconcile = reconciliationService as any;
+      const cardExpense = { ...mockCardTransaction, amount: 30.00 };
+      const ynabExpense = { ...mockYnabTransaction, amount: -50000 }; // -$50.00
+
+      const candidates = reconcile.findMatchingYnabTransactions(cardExpense, [ynabExpense]);
+      expect(candidates).to.have.lengthOf(0);
+    });
+
+    it('should match negative card amount (refund) with positive YNAB amount', () => {
+      const reconcile = reconciliationService as any;
+      // Card refund (negative on card)
+      const cardRefund = { ...mockCardTransaction, amount: -50.00 };
+      // YNAB inflow (positive in YNAB)
+      const ynabInflow = { ...mockYnabTransaction, amount: 50000 };
+
+      const candidates = reconcile.findMatchingYnabTransactions(cardRefund, [ynabInflow]);
+      expect(candidates).to.have.lengthOf(1);
+    });
+
+    it('should handle mixed transaction types in reconciliation', () => {
+      const service = reconciliationService as any;
+
+      // Card transactions (all positive for expenses, negative for refunds)
+      const cardExpense = { ...mockCardTransaction, id: 1, amount: 100.00, reference: 'EXP1' };
+      const cardRefund = { ...mockCardTransaction, id: 2, amount: -25.00, reference: 'REF1' };
+
+      // YNAB transactions (negative for expenses, positive for inflows)
+      const ynabExpense = { ...mockYnabTransaction, id: 'y1', amount: -100000 };
+      const ynabInflow = { ...mockYnabTransaction, id: 'y2', amount: 25000 };
+
+      const result = service.matchTransactions(
+        [cardExpense, cardRefund],
+        [ynabExpense, ynabInflow]
+      );
+
+      expect(result.matched).to.have.lengthOf(2);
+      expect(result.missingInYnab).to.have.lengthOf(0);
+      expect(result.unexpectedInYnab).to.have.lengthOf(0);
+    });
+
+    it('should respect amount tolerance even with opposite signs', () => {
+      const reconcile = reconciliationService as any;
+      // Card: $30.00
+      const cardExpense = { ...mockCardTransaction, amount: 30.00 };
+      // YNAB: -$30.005 (0.005 difference, clearly within 0.01 tolerance)
+      const ynabExpense = { ...mockYnabTransaction, amount: -30005 };
+
+      const candidates = reconcile.findMatchingYnabTransactions(cardExpense, [ynabExpense]);
+      expect(candidates).to.have.lengthOf(1);
+    });
+
+    it('should not match when difference exceeds tolerance with opposite signs', () => {
+      const reconcile = reconciliationService as any;
+      // Card: $30.00
+      const cardExpense = { ...mockCardTransaction, amount: 30.00 };
+      // YNAB: -$30.02 (exceeds 0.01 tolerance)
+      const ynabExpense = { ...mockYnabTransaction, amount: -30020 };
+
+      const candidates = reconcile.findMatchingYnabTransactions(cardExpense, [ynabExpense]);
+      expect(candidates).to.have.lengthOf(0);
+    });
+  });
 });

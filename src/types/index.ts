@@ -89,6 +89,7 @@ export interface YnabTransaction {
   id: string;
   date: string; // ISO 8601 format
   amount: number; // in milliunits (1000 = 1 unit of currency)
+  account_id: string;
   payee_name: string | null;
   category_name: string | null;
   memo: string | null;

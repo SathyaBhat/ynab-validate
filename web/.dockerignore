@@ -1,0 +1,52 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist
+build
+.vite
+.turbo
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+*.log
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage
+.nyc_output
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+
+# Docker files
+Dockerfile
+Dockerfile.*
+.dockerignore
+
+# Misc
+.cache
+.eslintcache
