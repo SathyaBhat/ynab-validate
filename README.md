@@ -10,6 +10,7 @@ A **production-ready full-stack web application** for importing and managing Ame
 - [Technology Stack](#technology-stack)
 - [Installation](#installation)
 - [Development](#development)
+- [YNAB Reconciliation](#ynab-reconciliation)
 - [API Documentation](#api-documentation)
 
 ## Features
@@ -20,7 +21,11 @@ A **production-ready full-stack web application** for importing and managing Ame
 - 🔄 **Deduplication** - Prevents duplicate imports using Reference field
 - 📊 **Transaction Management** - View, search, and delete transactions
 - 📋 **Import History** - Complete audit trail of all imports
-- 🌐 **REST API** - Full API for programmatic access
+- 🔗 **YNAB Reconciliation** - Compare card transactions against YNAB budget
+  - Identify transactions missing in YNAB
+  - Detect unexpected YNAB entries
+  - Flexible date and amount matching
+- 🌐 **REST API** - Full API for programmatic access (8+ endpoints)
 - 🐳 **Docker Ready** - Development and production containers
 - 📱 **Responsive UI** - Works on desktop and mobile
 
@@ -212,6 +217,34 @@ For deployment behind a reverse proxy (Traefik, Caddy, nginx) at a subpath:
 
 See [HOMESERVER_SETUP.md](HOMESERVER_SETUP.md) for detailed instructions with Traefik/Caddy/nginx examples.
 
+## YNAB Reconciliation
+
+Compare your American Express card statement against your YNAB budget to identify discrepancies:
+
+### Features
+- Identify transactions on the card statement but missing in YNAB
+- Detect transactions in YNAB but missing from the card statement
+- Flexible matching with configurable date/amount tolerance
+- Automatic conversion of YNAB "milliunits" to currency
+
+### Quick Setup
+1. Get your YNAB personal access token from [Settings > Developer](https://app.ynab.com/settings/developer)
+2. Add to `.env`: `YNAB_ACCESS_TOKEN=your_token_here`
+3. Use the reconciliation endpoints
+
+### API Example
+```bash
+curl -X POST http://localhost:3000/api/reconcile \
+  -H "Content-Type: application/json" \
+  -d '{
+    "budgetId": "your-budget-id",
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-31"
+  }'
+```
+
+For detailed documentation, see [YNAB_RECONCILIATION.md](YNAB_RECONCILIATION.md).
+
 ## Project Structure
 
 ```
@@ -240,6 +273,26 @@ dist/               # Compiled backend (auto-created)
 web/dist/           # Built frontend (auto-created)
 ```
 
+## API Endpoints
+
+### Import & Transactions
+- `POST /api/import` - Upload and import XLSX file
+- `POST /api/import/validate` - Validate file without importing
+- `GET /api/transactions` - List transactions (paginated)
+- `GET /api/transactions/:reference` - Get transaction by reference
+- `GET /api/transactions/id/:id` - Get transaction by ID
+- `DELETE /api/transactions/:id` - Delete transaction
+- `GET /api/import-history` - View import history
+
+### YNAB Reconciliation
+- `POST /api/reconcile` - Reconcile card vs YNAB transactions
+- `GET /api/reconcile/budgets` - Get available YNAB budgets
+
+### Health
+- `GET /health` - Server health check
+
+See [YNAB_RECONCILIATION.md](YNAB_RECONCILIATION.md) for reconciliation API details.
+
 ## Roadmap
 
 ### Completed ✅
@@ -248,10 +301,12 @@ web/dist/           # Built frontend (auto-created)
 - Phase 3: REST API with 8 endpoints
 - Phase 4: React frontend with 4 components
 - Phase 5: Docker & deployment config
+- Phase 6: YNAB reconciliation with matching algorithm
 
 ### Future 🚀
 - Advanced filtering & search
-- YNAB API integration/reconciliation
+- Reconciliation UI component
+- Persist reconciliation results
 - Kubernetes support
 
 ## Contributing

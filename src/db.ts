@@ -18,12 +18,48 @@ export function initializeDatabase(dbPath: string = 'db/transactions.db'): Datab
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
 
-  // Read and execute schema
+  // Run migrations FIRST for existing databases
+  runMigrations(db);
+
+  // Then execute schema (which will create tables/indexes if they don't exist)
   const schemaPath = path.join(__dirname, '..', 'src', 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf-8');
   db.exec(schema);
 
   return db;
+}
+
+/**
+ * Run database migrations for existing databases
+ */
+function runMigrations(database: Database.Database): void {
+  // Check if transactions table exists first
+  const tables = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'"
+  ).all() as Array<{ name: string }>;
+
+  if (tables.length === 0) {
+    // Table doesn't exist yet, schema will create it
+    return;
+  }
+
+  // Check if reconciliation columns exist
+  const tableInfo = database.prepare("PRAGMA table_info(transactions)").all() as Array<{ name: string }>;
+  const columnNames = tableInfo.map(col => col.name);
+
+  // Add reconciliation columns if they don't exist
+  if (!columnNames.includes('reconciled')) {
+    console.log('Adding reconciled column to transactions table');
+    database.exec('ALTER TABLE transactions ADD COLUMN reconciled BOOLEAN DEFAULT 0');
+  }
+  if (!columnNames.includes('ynab_transaction_id')) {
+    console.log('Adding ynab_transaction_id column to transactions table');
+    database.exec('ALTER TABLE transactions ADD COLUMN ynab_transaction_id TEXT');
+  }
+  if (!columnNames.includes('reconciled_at')) {
+    console.log('Adding reconciled_at column to transactions table');
+    database.exec('ALTER TABLE transactions ADD COLUMN reconciled_at TEXT');
+  }
 }
 
 /**
@@ -178,6 +214,9 @@ function transformTransactionRow(row: any): AmExTransactionRow {
     reference: row.reference,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    reconciled: row.reconciled === 1,
+    ynab_transaction_id: row.ynab_transaction_id || undefined,
+    reconciled_at: row.reconciled_at || undefined,
   };
 }
 
@@ -292,4 +331,167 @@ export function getImportLogs(limit: number = 50, offset: number = 0): ImportLog
     importTimestamp: log.import_timestamp,
     errors: log.errors ? JSON.parse(log.errors) : undefined,
   }));
+}
+
+/**
+ * Mark a single transaction as reconciled
+ */
+export function markTransactionReconciled(cardTransactionId: number, ynabTransactionId: string): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+  const stmt = database.prepare(`
+    UPDATE transactions
+    SET reconciled = 1, ynab_transaction_id = ?, reconciled_at = ?, updated_at = ?
+    WHERE id = ?
+  `);
+  const info = stmt.run(ynabTransactionId, now, now, cardTransactionId);
+  return (info.changes ?? 0) > 0;
+}
+
+/**
+ * Batch mark multiple transactions as reconciled (uses SQLite transaction)
+ */
+export function batchMarkReconciled(
+  matches: Array<{ cardId: number; ynabId: string }>,
+): { updated: number; errors: Array<{ cardId: number; error: string }> } {
+  const database = getDatabase();
+  const errors: Array<{ cardId: number; error: string }> = [];
+  let updated = 0;
+
+  const now = new Date().toISOString();
+  const updateStmt = database.prepare(`
+    UPDATE transactions
+    SET reconciled = 1, ynab_transaction_id = ?, reconciled_at = ?, updated_at = ?
+    WHERE id = ?
+  `);
+
+  const transaction = database.transaction((matchPairs: Array<{ cardId: number; ynabId: string }>) => {
+    for (const match of matchPairs) {
+      try {
+        const info = updateStmt.run(match.ynabId, now, now, match.cardId);
+        if ((info.changes ?? 0) > 0) {
+          updated++;
+        } else {
+          errors.push({
+            cardId: match.cardId,
+            error: 'Transaction not found',
+          });
+        }
+      } catch (err) {
+        errors.push({
+          cardId: match.cardId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  });
+
+  transaction(matches);
+  return { updated, errors };
+}
+
+/**
+ * Unreconcile a transaction (for manual override)
+ */
+export function unreconcileTransaction(cardTransactionId: number): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+  const stmt = database.prepare(`
+    UPDATE transactions
+    SET reconciled = 0, ynab_transaction_id = NULL, reconciled_at = NULL, updated_at = ?
+    WHERE id = ?
+  `);
+  const info = stmt.run(now, cardTransactionId);
+  return (info.changes ?? 0) > 0;
+}
+
+/**
+ * Get unreconciled transactions in date range
+ */
+export function getUnreconciledTransactions(startDate: string, endDate: string): AmExTransactionRow[] {
+  const database = getDatabase();
+  const stmt = database.prepare(`
+    SELECT * FROM transactions
+    WHERE reconciled = 0
+    AND date >= ?
+    AND date <= ?
+    ORDER BY date DESC
+  `);
+  const rows = stmt.all(startDate, endDate) as any[];
+  return rows.map(transformTransactionRow);
+}
+
+/**
+ * Get transactions by date range (for reconciliation)
+ */
+export function getTransactionsByDateRange(startDate: string, endDate: string): AmExTransactionRow[] {
+  const database = getDatabase();
+  const stmt = database.prepare(`
+    SELECT * FROM transactions
+    WHERE date >= ?
+    AND date <= ?
+    ORDER BY date DESC
+  `);
+  const rows = stmt.all(startDate, endDate) as any[];
+  return rows.map(transformTransactionRow);
+}
+
+/**
+ * Insert reconciliation log
+ */
+export function insertReconciliationLog(
+  log: Omit<import('./types/index').ReconciliationLog, 'id'>,
+): import('./types/index').ReconciliationLog {
+  const database = getDatabase();
+  const stmt = database.prepare(`
+    INSERT INTO reconciliation_logs (
+      budget_id, start_date, end_date, matched_count, missing_in_ynab_count,
+      unexpected_in_ynab_count, flagged_count, created_in_ynab_count,
+      reconciled_at, config, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    log.budget_id,
+    log.start_date,
+    log.end_date,
+    log.matched_count,
+    log.missing_in_ynab_count,
+    log.unexpected_in_ynab_count,
+    log.flagged_count,
+    log.created_in_ynab_count,
+    log.reconciled_at,
+    log.config || null,
+    log.notes || null,
+  );
+
+  // Get the inserted log
+  const getStmt = database.prepare('SELECT * FROM reconciliation_logs ORDER BY id DESC LIMIT 1');
+  const result = getStmt.get() as import('./types/index').ReconciliationLog;
+  return result;
+}
+
+/**
+ * Get reconciliation logs with pagination
+ */
+export function getReconciliationLogs(
+  budgetId?: string,
+  limit: number = 50,
+  offset: number = 0,
+): import('./types/index').ReconciliationLog[] {
+  const database = getDatabase();
+  let query = 'SELECT * FROM reconciliation_logs';
+  const params: any[] = [];
+
+  if (budgetId) {
+    query += ' WHERE budget_id = ?';
+    params.push(budgetId);
+  }
+
+  query += ' ORDER BY reconciled_at DESC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
+
+  const stmt = database.prepare(query);
+  const logs = stmt.all(...params) as import('./types/index').ReconciliationLog[];
+  return logs;
 }

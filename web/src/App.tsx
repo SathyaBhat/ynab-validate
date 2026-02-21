@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { FileUpload } from './components/FileUpload';
 import { TransactionList } from './components/TransactionList';
 import { ImportHistory } from './components/ImportHistory';
+import { ReconciliationPanel } from './components/ReconciliationPanel';
 import { ImportResult } from './types';
 import './App.css';
 
@@ -48,6 +49,10 @@ function App() {
         <FileUpload onImportComplete={handleImportComplete} />
 
         <div className="tabs">
+          <div className="tab-content">
+            <ReconciliationPanel />
+          </div>
+
           <div className="tab-content">
             <h2>Transactions</h2>
             <TransactionList refreshTrigger={refreshTrigger} />

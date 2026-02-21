@@ -6,6 +6,7 @@ import * as path from 'path';
 import { importRoutes } from './routes/import';
 import { transactionRoutes } from './routes/transactions';
 import { historyRoutes } from './routes/history';
+import { reconcileRoutes } from './routes/reconcile';
 
 /**
  * Error response type
@@ -76,6 +77,7 @@ export function createApp(): Express {
   app.use('/api/import', importRoutes(upload));
   app.use('/api/transactions', transactionRoutes());
   app.use('/api/import-history', historyRoutes());
+  app.use('/api/reconcile', reconcileRoutes());
 
   // Health check endpoint
   app.get('/health', (req: Request, res: Response) => {

@@ -1,5 +1,20 @@
 import axios from 'axios';
-import type { ImportResult, ValidationResult, AmExTransactionRow, ImportLog } from '../types';
+import type {
+  ImportResult,
+  ValidationResult,
+  AmExTransactionRow,
+  ImportLog,
+  ReconciliationResultWithActions,
+  ReconciliationParams,
+  MatchPair,
+  PersistResult,
+  FlagResult,
+  CreateResult,
+  UnmatchResult,
+  ReconciliationLog,
+  YnabBudget,
+  YnabAccount,
+} from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -109,5 +124,95 @@ export const getImportHistory = async (
     },
   );
 
+  return response.data.data;
+};
+
+// Reconciliation endpoints
+export const getBudgets = async (): Promise<YnabBudget[]> => {
+  const response = await apiClient.get<{ data: YnabBudget[] }>('/api/reconcile/budgets');
+  return response.data.data;
+};
+
+export const getAccountsForBudget = async (budgetId: string): Promise<YnabAccount[]> => {
+  const response = await apiClient.get<{ data: YnabAccount[] }>(
+    `/api/reconcile/accounts/${budgetId}`,
+  );
+  return response.data.data;
+};
+
+export const runReconciliation = async (
+  params: ReconciliationParams,
+): Promise<ReconciliationResultWithActions> => {
+  const response = await apiClient.post<{ data: ReconciliationResultWithActions }>(
+    '/api/reconcile',
+    params,
+    {
+      params: {
+        persist: params.persist || false,
+      },
+    },
+  );
+  return response.data.data;
+};
+
+export const persistMatches = async (
+  matches: MatchPair[],
+  budgetId: string,
+  startDate: string,
+  endDate: string,
+): Promise<PersistResult> => {
+  const response = await apiClient.post<{ data: PersistResult }>('/api/reconcile/persist', {
+    matches,
+    budgetId,
+    startDate,
+    endDate,
+  });
+  return response.data.data;
+};
+
+export const flagTransactions = async (
+  budgetId: string,
+  transactionIds: string[],
+  flagColor: string = 'orange',
+): Promise<FlagResult> => {
+  const response = await apiClient.post<{ data: FlagResult }>('/api/reconcile/flag', {
+    budgetId,
+    transactionIds,
+    flagColor,
+  });
+  return response.data.data;
+};
+
+export const createTransactionsInYnab = async (
+  budgetId: string,
+  accountId: string,
+  cardTransactionIds: number[],
+): Promise<CreateResult> => {
+  const response = await apiClient.post<{ data: CreateResult }>('/api/reconcile/create', {
+    budgetId,
+    accountId,
+    cardTransactionIds,
+  });
+  return response.data.data;
+};
+
+export const unmatchTransaction = async (cardId: number): Promise<UnmatchResult> => {
+  const response = await apiClient.delete<{ data: UnmatchResult }>(
+    `/api/reconcile/match/${cardId}`,
+  );
+  return response.data.data;
+};
+
+export const getReconciliationHistory = async (
+  budgetId?: string,
+  limit: number = 50,
+  offset: number = 0,
+): Promise<ReconciliationLog[]> => {
+  const response = await apiClient.get<{ data: ReconciliationLog[] }>(
+    '/api/reconcile/history',
+    {
+      params: { budgetId, limit, offset },
+    },
+  );
   return response.data.data;
 };
