@@ -98,6 +98,7 @@ export interface YnabTransaction {
   id: string;
   date: string;
   amount: number; // in milliunits
+  account_id: string;
   payee_name: string | null;
   category_name: string | null;
   memo: string | null;
@@ -143,6 +144,7 @@ export interface ReconciliationResultWithActions extends ReconciliationResult {
 
 export interface ReconciliationParams {
   budgetId: string;
+  accountId: string;
   startDate: string;
   endDate: string;
   dateTolerance?: number;

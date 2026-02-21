@@ -22,7 +22,7 @@ import { YnabClient } from './ynabClient';
 interface ReconciliationConfig {
   /**
    * Number of days to tolerate for date differences
-   * Default: 2 (±2 days)
+   * Default: 7 (±7 days)
    */
   dateTolerance: number;
 
@@ -40,7 +40,7 @@ interface ReconciliationConfig {
 }
 
 const DEFAULT_CONFIG: ReconciliationConfig = {
-  dateTolerance: 2,
+  dateTolerance: 7,
   amountTolerance: 0.01,
   excludeDeletedTransactions: true,
 };

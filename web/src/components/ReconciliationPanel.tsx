@@ -87,8 +87,8 @@ export function ReconciliationPanel() {
   };
 
   const handleRunReconciliation = async () => {
-    if (!selectedBudget || !startDate || !endDate) {
-      setError('Please select budget and date range');
+    if (!selectedBudget || !selectedAccount || !startDate || !endDate) {
+      setError('Please select budget, account, and date range');
       return;
     }
 
@@ -102,6 +102,7 @@ export function ReconciliationPanel() {
     try {
       const reconciliationResult = await runReconciliation({
         budgetId: selectedBudget,
+        accountId: selectedAccount,
         startDate,
         endDate,
         persist: false,
@@ -299,7 +300,7 @@ export function ReconciliationPanel() {
         <button
           className="btn btn-primary"
           onClick={handleRunReconciliation}
-          disabled={loading || !selectedBudget || !startDate || !endDate}
+          disabled={loading || !selectedBudget || !selectedAccount || !startDate || !endDate}
         >
           {loading ? 'Running...' : 'Run Reconciliation'}
         </button>

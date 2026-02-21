@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Full-stack TypeScript application for importing American Express credit card statements and reconciling them with YNAB (You Need A Budget). The application parses XLSX statement files, stores transactions in SQLite, and provides REST APIs for transaction management and YNAB reconciliation.
 
+## Development Guidelines
+- Use TypeScript for all code (backend and frontend)
+- Follow existing code style and conventions (e.g. async/await, error handling)
+- Write modular, reusable code (services, utilities)
+- Use environment variables for configuration (see `.env.example`)
+- Write tests for new features and bug fixes 
+- Always run all tests and linting
+- Always update CHANGELOG.md with new features, bug fixes, and breaking changes, and keep CLAUDE.md updated with any architectural changes or new development commands
+
+
 ## Development Commands
 
 ### Running the Application

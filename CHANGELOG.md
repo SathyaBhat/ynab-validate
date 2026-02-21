@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Increased reconciliation date tolerance from ±2 days to ±7 days to better handle posting date differences between AmEx and YNAB
+
 ### Added
 - Account filtering for YNAB reconciliation to prevent false "unexpected" transactions
   - Added `account_id` field to `YnabTransaction` type
@@ -59,11 +62,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Reconciliation API now requires `accountId` parameter
   - Old: `POST /api/reconcile { budgetId, startDate, endDate }`
   - New: `POST /api/reconcile { budgetId, accountId, startDate, endDate }`
-  - Frontend must be updated to pass selected account ID
+  - ✅ Frontend updated to pass selected account ID
 - YnabClient.getTransactionsByDateRange() now accepts optional `accountId` parameter
 - ReconciliationService.reconcile() signature updated to require `accountId`
 - ReconciliationService.reconcileAndPersist() signature updated to require `accountId`
 - All YNAB transaction mappings now include `account_id` field
+- Frontend types updated:
+  - `ReconciliationParams` now includes required `accountId` field
+  - `YnabTransaction` now includes `account_id` field
+- ReconciliationPanel component updated to pass `accountId` in API calls
+- Validation updated to require account selection before reconciliation
 
 ### Technical Details
 
@@ -108,6 +116,8 @@ fi
 - TypeScript build successful ✅
 
 ### Files Modified
+
+Backend:
 - `src/types/index.ts`: Added `account_id` to YnabTransaction
 - `src/services/ynabClient.ts`: Account filtering, account_id capture
 - `src/services/reconciliationService.ts`: Sign matching fix, account parameter
@@ -116,6 +126,12 @@ fi
 - `src/server/routes/transactions.ts`: Query parameter type fixes
 - `src/server/utils/queryParams.ts`: New utility file
 - `spec/reconciliation.test.ts`: Added 13 new tests
+
+Frontend:
+- `web/src/types.ts`: Added `accountId` to ReconciliationParams, `account_id` to YnabTransaction
+- `web/src/components/ReconciliationPanel.tsx`: Pass accountId to API, updated validation
+
+Build System:
 - `Makefile`: New build automation system
 - `.version-backend`, `.version-web`: Version tracking files
 - `.dockerignore`: Exclude build artifacts
@@ -124,6 +140,14 @@ fi
 ### Migration Notes
 
 #### For API Consumers (Frontend)
+✅ **Frontend already updated** - No manual migration needed!
+
+The ReconciliationPanel component now automatically:
+- Passes `accountId` to the reconciliation API
+- Validates that an account is selected before allowing reconciliation
+- Disables the "Run Reconciliation" button until account is selected
+
+If you're using the API directly:
 ```typescript
 // Update reconciliation API calls to include accountId
 const response = await fetch('/api/reconcile', {
@@ -131,7 +155,7 @@ const response = await fetch('/api/reconcile', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     budgetId: selectedBudget,
-    accountId: selectedAccount,  // ← ADD THIS
+    accountId: selectedAccount,  // ← REQUIRED
     startDate: '2026-02-01',
     endDate: '2026-02-28',
   })
