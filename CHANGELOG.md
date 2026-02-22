@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Increased reconciliation date tolerance from ±2 days to ±7 days to better handle posting date differences between AmEx and YNAB
+- Expanded YNAB transaction query window by `dateTolerance` days on both ends so transactions near date range boundaries are not missed during matching
+- Reduced false positives in "Unexpected in YNAB" by scoping it to the original date range (buffer zone transactions used for matching only) and excluding already-reconciled transactions
 
 ### Added
 - Account filtering for YNAB reconciliation to prevent false "unexpected" transactions

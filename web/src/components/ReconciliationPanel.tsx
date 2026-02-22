@@ -40,6 +40,17 @@ export function ReconciliationPanel() {
   const [flaggingTransactions, setFlaggingTransactions] = useState(false);
   const [creatingTransactions, setCreatingTransactions] = useState(false);
 
+  // Collapsed state for sections (matched collapsed by default)
+  const [collapsedSections, setCollapsedSections] = useState({
+    missing: false,
+    unexpected: false,
+    matched: true,
+  });
+
+  const toggleSection = (section: 'missing' | 'unexpected' | 'matched') => {
+    setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
   // Load budgets on mount
   useEffect(() => {
     loadBudgets();
@@ -319,85 +330,17 @@ export function ReconciliationPanel() {
             </p>
           </div>
 
-          {/* Matched Transactions */}
-          {result.discrepancies.matched.length > 0 && (
-            <div className="section section-matched">
-              <div className="section-header">
-                <h3>Matched Transactions ({result.discrepancies.matched.length})</h3>
-                <button
-                  className="btn btn-save"
-                  onClick={handleSaveMatches}
-                  disabled={selectedMatches.size === 0 || savingMatches}
-                >
-                  {savingMatches
-                    ? 'Saving...'
-                    : `Save ${selectedMatches.size} Selected Match${selectedMatches.size !== 1 ? 'es' : ''}`}
-                </button>
-              </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input
-                          type="checkbox"
-                          checked={
-                            selectedMatches.size === result.discrepancies.matched.length &&
-                            result.discrepancies.matched.length > 0
-                          }
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedMatches(
-                                new Set(
-                                  result.discrepancies.matched.map((m) => m.cardTransaction.id),
-                                ),
-                              );
-                            } else {
-                              setSelectedMatches(new Set());
-                            }
-                          }}
-                        />
-                      </th>
-                      <th>Date</th>
-                      <th>Description (Card)</th>
-                      <th>Amount</th>
-                      <th>YNAB Payee</th>
-                      <th>Date Diff</th>
-                      <th>Reference</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.discrepancies.matched.map((match) => (
-                      <tr key={match.cardTransaction.id}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedMatches.has(match.cardTransaction.id)}
-                            onChange={() => toggleMatchSelection(match.cardTransaction.id)}
-                          />
-                        </td>
-                        <td>{match.cardTransaction.date}</td>
-                        <td>{match.cardTransaction.description}</td>
-                        <td>{formatAmount(match.cardTransaction.amount)}</td>
-                        <td>{match.ynabTransaction.payee_name || '(no payee)'}</td>
-                        <td>{getDateDiffBadge(match.dateDifference)}</td>
-                        <td className="reference">{match.cardTransaction.reference}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
           {/* Missing in YNAB */}
           {result.discrepancies.missingInYnab.length > 0 && (
             <div className="section section-missing">
-              <div className="section-header">
-                <h3>Missing in YNAB ({result.discrepancies.missingInYnab.length})</h3>
+              <div className="section-header" onClick={() => toggleSection('missing')}>
+                <h3>
+                  <span className={`section-chevron${collapsedSections.missing ? ' collapsed' : ''}`}>&#9660;</span>
+                  Missing in YNAB ({result.discrepancies.missingInYnab.length})
+                </h3>
                 <button
                   className="btn btn-create"
-                  onClick={handleCreateSelected}
+                  onClick={(e) => { e.stopPropagation(); handleCreateSelected(); }}
                   disabled={
                     selectedMissing.size === 0 || !selectedAccount || creatingTransactions
                   }
@@ -407,66 +350,71 @@ export function ReconciliationPanel() {
                     : `Create ${selectedMissing.size} Selected in YNAB`}
                 </button>
               </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input
-                          type="checkbox"
-                          checked={
-                            selectedMissing.size === result.discrepancies.missingInYnab.length &&
-                            result.discrepancies.missingInYnab.length > 0
-                          }
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedMissing(
-                                new Set(result.discrepancies.missingInYnab.map((t) => t.id)),
-                              );
-                            } else {
-                              setSelectedMissing(new Set());
-                            }
-                          }}
-                        />
-                      </th>
-                      <th>Date</th>
-                      <th>Description</th>
-                      <th>Card Member</th>
-                      <th>Amount</th>
-                      <th>Reference</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.discrepancies.missingInYnab.map((txn) => (
-                      <tr key={txn.id}>
-                        <td>
+              {!collapsedSections.missing && (
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>
                           <input
                             type="checkbox"
-                            checked={selectedMissing.has(txn.id)}
-                            onChange={() => toggleMissingSelection(txn.id)}
+                            checked={
+                              selectedMissing.size === result.discrepancies.missingInYnab.length &&
+                              result.discrepancies.missingInYnab.length > 0
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedMissing(
+                                  new Set(result.discrepancies.missingInYnab.map((t) => t.id)),
+                                );
+                              } else {
+                                setSelectedMissing(new Set());
+                              }
+                            }}
                           />
-                        </td>
-                        <td>{txn.date}</td>
-                        <td>{txn.description}</td>
-                        <td>{txn.card_member}</td>
-                        <td>{formatAmount(txn.amount)}</td>
-                        <td className="reference">{txn.reference}</td>
+                        </th>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Card Member</th>
+                        <th>Amount</th>
+                        <th>Reference</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {result.discrepancies.missingInYnab.map((txn) => (
+                        <tr key={txn.id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedMissing.has(txn.id)}
+                              onChange={() => toggleMissingSelection(txn.id)}
+                            />
+                          </td>
+                          <td>{txn.date}</td>
+                          <td>{txn.description}</td>
+                          <td>{txn.card_member}</td>
+                          <td>{formatAmount(txn.amount)}</td>
+                          <td className="reference">{txn.reference}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
           {/* Unexpected in YNAB */}
           {result.discrepancies.unexpectedInYnab.length > 0 && (
             <div className="section section-unexpected">
-              <div className="section-header">
-                <h3>Unexpected in YNAB ({result.discrepancies.unexpectedInYnab.length})</h3>
+              <div className="section-header" onClick={() => toggleSection('unexpected')}>
+                <h3>
+                  <span className={`section-chevron${collapsedSections.unexpected ? ' collapsed' : ''}`}>&#9660;</span>
+                  Unexpected in YNAB ({result.discrepancies.unexpectedInYnab.length})
+                </h3>
                 <button
                   className="btn btn-flag"
-                  onClick={handleFlagSelected}
+                  onClick={(e) => { e.stopPropagation(); handleFlagSelected(); }}
                   disabled={selectedUnexpected.size === 0 || flaggingTransactions}
                 >
                   {flaggingTransactions
@@ -474,58 +422,136 @@ export function ReconciliationPanel() {
                     : `Flag ${selectedUnexpected.size} Selected (Orange)`}
                 </button>
               </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input
-                          type="checkbox"
-                          checked={
-                            selectedUnexpected.size ===
-                              result.discrepancies.unexpectedInYnab.length &&
-                            result.discrepancies.unexpectedInYnab.length > 0
-                          }
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedUnexpected(
-                                new Set(result.discrepancies.unexpectedInYnab.map((t) => t.id)),
-                              );
-                            } else {
-                              setSelectedUnexpected(new Set());
-                            }
-                          }}
-                        />
-                      </th>
-                      <th>Date</th>
-                      <th>Payee</th>
-                      <th>Amount</th>
-                      <th>Memo</th>
-                      <th>Category</th>
-                      <th>Cleared</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.discrepancies.unexpectedInYnab.map((txn) => (
-                      <tr key={txn.id}>
-                        <td>
+              {!collapsedSections.unexpected && (
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>
                           <input
                             type="checkbox"
-                            checked={selectedUnexpected.has(txn.id)}
-                            onChange={() => toggleUnexpectedSelection(txn.id)}
+                            checked={
+                              selectedUnexpected.size ===
+                                result.discrepancies.unexpectedInYnab.length &&
+                              result.discrepancies.unexpectedInYnab.length > 0
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedUnexpected(
+                                  new Set(result.discrepancies.unexpectedInYnab.map((t) => t.id)),
+                                );
+                              } else {
+                                setSelectedUnexpected(new Set());
+                              }
+                            }}
                           />
-                        </td>
-                        <td>{txn.date}</td>
-                        <td>{txn.payee_name || '(no payee)'}</td>
-                        <td>{formatAmount(txn.amount, true)}</td>
-                        <td>{txn.memo || ''}</td>
-                        <td>{txn.category_name || '(uncategorized)'}</td>
-                        <td>{txn.cleared}</td>
+                        </th>
+                        <th>Date</th>
+                        <th>Payee</th>
+                        <th>Amount</th>
+                        <th>Memo</th>
+                        <th>Category</th>
+                        <th>Cleared</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {result.discrepancies.unexpectedInYnab.map((txn) => (
+                        <tr key={txn.id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedUnexpected.has(txn.id)}
+                              onChange={() => toggleUnexpectedSelection(txn.id)}
+                            />
+                          </td>
+                          <td>{txn.date}</td>
+                          <td>{txn.payee_name || '(no payee)'}</td>
+                          <td>{formatAmount(txn.amount, true)}</td>
+                          <td>{txn.memo || ''}</td>
+                          <td>{txn.category_name || '(uncategorized)'}</td>
+                          <td>{txn.cleared}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Matched Transactions */}
+          {result.discrepancies.matched.length > 0 && (
+            <div className="section section-matched">
+              <div className="section-header" onClick={() => toggleSection('matched')}>
+                <h3>
+                  <span className={`section-chevron${collapsedSections.matched ? ' collapsed' : ''}`}>&#9660;</span>
+                  Matched Transactions ({result.discrepancies.matched.length})
+                </h3>
+                <button
+                  className="btn btn-save"
+                  onClick={(e) => { e.stopPropagation(); handleSaveMatches(); }}
+                  disabled={selectedMatches.size === 0 || savingMatches}
+                >
+                  {savingMatches
+                    ? 'Saving...'
+                    : `Save ${selectedMatches.size} Selected Match${selectedMatches.size !== 1 ? 'es' : ''}`}
+                </button>
               </div>
+              {!collapsedSections.matched && (
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>
+                          <input
+                            type="checkbox"
+                            checked={
+                              selectedMatches.size === result.discrepancies.matched.length &&
+                              result.discrepancies.matched.length > 0
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedMatches(
+                                  new Set(
+                                    result.discrepancies.matched.map((m) => m.cardTransaction.id),
+                                  ),
+                                );
+                              } else {
+                                setSelectedMatches(new Set());
+                              }
+                            }}
+                          />
+                        </th>
+                        <th>Date</th>
+                        <th>Description (Card)</th>
+                        <th>Amount</th>
+                        <th>YNAB Payee</th>
+                        <th>Date Diff</th>
+                        <th>Reference</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.discrepancies.matched.map((match) => (
+                        <tr key={match.cardTransaction.id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedMatches.has(match.cardTransaction.id)}
+                              onChange={() => toggleMatchSelection(match.cardTransaction.id)}
+                            />
+                          </td>
+                          <td>{match.cardTransaction.date}</td>
+                          <td>{match.cardTransaction.description}</td>
+                          <td>{formatAmount(match.cardTransaction.amount)}</td>
+                          <td>{match.ynabTransaction.payee_name || '(no payee)'}</td>
+                          <td>{getDateDiffBadge(match.dateDifference)}</td>
+                          <td className="reference">{match.cardTransaction.reference}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

@@ -137,6 +137,19 @@
   align-items: center;
   padding: 1rem 1.5rem;
   gap: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-chevron {
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.section-chevron.collapsed {
+  transform: rotate(-90deg);
 }
 
 .section-matched .section-header {

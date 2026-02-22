@@ -79,11 +79,14 @@ export class ReconciliationService {
       // Fetch card transactions
       const cardTransactions = await this.getCardTransactionsInRange(startDate, endDate, limit, offset);
 
-      // Fetch YNAB transactions for specific account
+      // Fetch YNAB transactions for specific account, expanded by dateTolerance on both ends
+      // to account for posting date differences between card and YNAB
+      const ynabStartDate = this.shiftDate(startDate, -this.config.dateTolerance);
+      const ynabEndDate = this.shiftDate(endDate, this.config.dateTolerance);
       const ynabTransactions = await this.ynabClient.getTransactionsByDateRange(
         budgetId,
-        startDate,
-        endDate,
+        ynabStartDate,
+        ynabEndDate,
         accountId,
       );
 
@@ -98,6 +101,13 @@ export class ReconciliationService {
         filteredYnabTransactions,
       );
 
+      // Filter unexpected to only actionable entries:
+      // 1. Within the original date range (buffer zone transactions used for matching only)
+      // 2. Not already reconciled in YNAB (those are already confirmed correct)
+      const actionableUnexpected = unexpectedInYnab.filter(
+        (t) => t.date >= startDate && t.date <= endDate && t.cleared !== 'reconciled',
+      );
+
       return {
         success: true,
         dateRange: { startDate, endDate },
@@ -107,7 +117,7 @@ export class ReconciliationService {
         matchedCount: matched.length,
         discrepancies: {
           missingInYnab,
-          unexpectedInYnab,
+          unexpectedInYnab: actionableUnexpected,
           matched,
         },
         timestamp: new Date().toISOString(),
@@ -363,6 +373,15 @@ export class ReconciliationService {
         ynabTransaction: ynabTxn,
         dateDifference: this.dateDifference(cardDate, ynabTxn.date),
       }));
+  }
+
+  /**
+   * Shift an ISO date string by a number of days (positive or negative)
+   */
+  private shiftDate(date: string, days: number): string {
+    const d = new Date(date);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
   }
 
   /**
